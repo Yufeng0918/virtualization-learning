@@ -1,0 +1,13 @@
+version: '3'
+services:
+  mongo:
+    image: mongo:3.4
+    container_name: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    restart: on-failure
+    ports:
+    - 0.0.0.0:27017:2701
+    volumes:
+    - /Users/daiyu/dev/data/mongo-data:/data/db

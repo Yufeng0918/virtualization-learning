@@ -1,0 +1,11 @@
+version: '3'
+services:
+  redis:
+    image: redis:5.0
+    container_name: redis-server
+    environment:
+    - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+    - 6379:6379
+    volumes:
+    - /Users/daiyu/dev/data/redis-data:/data

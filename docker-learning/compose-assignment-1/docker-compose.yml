@@ -1,0 +1,18 @@
+version: '2'
+
+services:
+  drupal:
+    image: drupal # this will use the latest version of 1.11.x
+    ports:
+      - '8080:80' # expose 80 on host and sent to 80 in container
+    volumes:
+      - ./path/host/modules:/var/www/html/modules \
+      - ./path/host/profiles:/var/www/html/profiles \
+      - ./path/host/sites:/var/www/html/sites \
+      - ./path/host/themes:/var/www/html/themes \
+  postgres:
+    image: postgres:9.6  # this will use httpd:latest
+    environment:
+      POSTGRES_PASSWORD: mypasswd
+      
+  

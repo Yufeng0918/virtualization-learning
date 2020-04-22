@@ -1,0 +1,10 @@
+version: '3'
+services:
+  artifactory:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    ports:
+    - 9092:8080
+    - 9093:50000
+    volumes:
+    - /Users/daiyu/dev/jenkins-home:/var/jenkins_home
