@@ -295,4 +295,50 @@ secrets:
 ***
 
 #K8S
+#### K8S vs MESOS vs SWARM
+- Apache Mesos: twiter before 2009
+- Docker Swarm: light weight 
+- Borg: internel used by Google
+- K8S
+    + developed by Go from Google
+    + open source
+    + elastic scaling
+    + load balancing from IPVS
+![](images/Jietu20200422-132812.png)
+![](images/Jietu20200422-132853.png)
+- etcd: key-value, distributed storage, native support cluster
+    + wal: operation log
+    + raft: incremental backup
+    + snapshot: storage backup
+- kubelet: manage container lifecycle
+- kube-proxy: mange contianer IPTABLES, IPVS
+#### Prod
+- Pod Controller
+    + ReplicationController: auto scaling pod
+    + ReplicasSet: same as RC and support selector
+    + Deployment: manage RS to support rolling-update
+    + Horizontal Pod Autoscaling: auto scaling based on CPU
+    + StatefulSet: service with data persist and network Id
+    + DaemonSet: run a pod in every node, e.g. logstash, promethenus
+    + CronJob: one time schedule and periodically
+- category
+    - self pod
+    - managed pod
+- Pod
+    + containers in same Pod: localhost
+    + Pod to Service: IPTABLES
+    + Pod to Pod
+        + container in different node with unique id
+        + each node run flanneld daemon process
+        + Pods in same node: localhost bridge
+        + Pods in different node
+            + ETCD store flannel IP segment
+            + routing to flannel segment, then routing to pod
+![](images/Jietu20200422-142401.png)
+![](images/Jietu20200422-142700.png)
+            
+        
+
+
+
 
