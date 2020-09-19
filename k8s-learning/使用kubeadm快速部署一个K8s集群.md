@@ -77,7 +77,7 @@ $ yum -y install docker-ce-18.06.1.ce-3.el7
 $ systemctl enable docker && systemctl start docker
 $ docker --version
 Docker version 18.06.1-ce, build e68fc7a
-
+#修改docker仓库
 $ cat > /etc/docker/daemon.json << EOF
 {
   "registry-mirrors": ["https://b9pmyelo.mirror.aliyuncs.com"]
