@@ -20,6 +20,8 @@ $ kubeadm join <Master节点的IP和端口 >
 - 可以访问外网，需要拉取镜像，如果服务器不能上网，需要提前下载镜像并导入节点
 - 禁止swap分区
 
+
+
 ## 2. 准备环境
 
 | 角色   | IP           |
@@ -63,6 +65,8 @@ sysctl --system  # 生效
 yum install ntpdate -y
 ntpdate time.windows.com
 ```
+
+
 
 ## 3. 所有节点安装Docker/kubeadm/kubelet
 
@@ -150,6 +154,8 @@ $ yum install -y kubelet-1.18.0 kubeadm-1.18.0 kubectl-1.18.0
 $ systemctl enable kubelet
 ```
 
+
+
 ## 4. 部署Kubernetes Master
 
 在192.168.31.61（Master）执行。
@@ -174,6 +180,8 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 $ kubectl get nodes
 ```
 
+
+
 ## 5. 加入Kubernetes Node
 
 在192.168.1.12/13（Node）执行。
@@ -191,6 +199,8 @@ $ kubeadm join 192.168.1.11:6443 --token esce21.q6hetwm8si29qxwn \
 kubeadm token create --print-join-command
 ```
 
+
+
 ## 6. 部署CNI网络插件
 
 ```shell
@@ -206,6 +216,8 @@ kubectl get pods -n kube-system
 NAME                          READY   STATUS    RESTARTS   AGE
 kube-flannel-ds-amd64-2pc95   1/1     Running   0          72s
 ```
+
+
 
 ## 7. 测试kubernetes集群
 

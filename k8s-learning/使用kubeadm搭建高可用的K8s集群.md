@@ -20,6 +20,8 @@ $ kubeadm join <Master节点的IP和端口 >
 - 可以访问外网，需要拉取镜像，如果服务器不能上网，需要提前下载镜像并导入节点
 - 禁止swap分区
 
+
+
 ## 2. 准备环境
 
 | 角色          | IP             |
@@ -29,7 +31,7 @@ $ kubeadm join <Master节点的IP和端口 >
 | node1         | 192.168.44.157 |
 | VIP（虚拟ip） | 192.168.44.158 |
 
-```
+```shell
 # 关闭防火墙
 systemctl stop firewalld
 systemctl disable firewalld
@@ -77,11 +79,13 @@ yum install -y conntrack-tools libseccomp libtool-ltdl
 yum install -y keepalived
 ```
 
+
+
 ### 3.2配置master节点
 
 master1节点配置
 
-```
+```shell
 cat > /etc/keepalived/keepalived.conf <<EOF 
 ! Configuration File for keepalived
 
@@ -120,7 +124,7 @@ EOF
 
 master2节点配置
 
-```
+```shell
 cat > /etc/keepalived/keepalived.conf <<EOF 
 ! Configuration File for keepalived
 
@@ -161,7 +165,7 @@ EOF
 
 在两台master节点都执行
 
-```
+```shell
 # 启动keepalived
 $ systemctl start keepalived.service
 设置开机启动
@@ -182,7 +186,7 @@ ip a s ens33
 
 ### 4.1 安装
 
-```
+```shell
 yum install -y haproxy
 ```
 
@@ -190,7 +194,7 @@ yum install -y haproxy
 
 两台master节点的配置均相同，配置中声明了后端代理的两个master节点服务器，指定了haproxy运行的端口为16443等，因此16443端口为集群的入口
 
-```
+```shell
 cat > /etc/haproxy/haproxy.cfg << EOF
 #---------------------------------------------------------------------
 # Global settings
@@ -271,7 +275,7 @@ EOF
 
 两台master都启动
 
-```
+```shell
 # 设置开机启动
 $ systemctl enable haproxy
 # 开启haproxy
@@ -282,7 +286,7 @@ $ systemctl status haproxy
 
 检查端口
 
-```
+```shell
 netstat -lntup|grep haproxy
 ```
 
@@ -294,7 +298,7 @@ Kubernetes默认CRI（容器运行时）为Docker，因此先安装Docker。
 
 ### 5.1 安装Docker
 
-```
+```shell
 $ wget https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo -O /etc/yum.repos.d/docker-ce.repo
 $ yum -y install docker-ce-18.06.1.ce-3.el7
 $ systemctl enable docker && systemctl start docker
@@ -302,7 +306,7 @@ $ docker --version
 Docker version 18.06.1-ce, build e68fc7a
 ```
 
-```
+```shell
 $ cat > /etc/docker/daemon.json << EOF
 {
   "registry-mirrors": ["https://b9pmyelo.mirror.aliyuncs.com"]
@@ -312,7 +316,7 @@ EOF
 
 ### 5.2 添加阿里云YUM软件源
 
-```
+```shell
 $ cat > /etc/yum.repos.d/kubernetes.repo << EOF
 [kubernetes]
 name=Kubernetes
@@ -328,7 +332,7 @@ EOF
 
 由于版本更新频繁，这里指定版本号部署：
 
-```
+```shell
 $ yum install -y kubelet-1.16.3 kubeadm-1.16.3 kubectl-1.16.3
 $ systemctl enable kubelet
 ```
@@ -341,7 +345,7 @@ $ systemctl enable kubelet
 
 在具有vip的master上操作，这里为master1
 
-```
+```shell
 $ mkdir /usr/local/kubernetes/manifests -p
 
 $ cd /usr/local/kubernetes/manifests/
@@ -384,7 +388,7 @@ scheduler: {}
 
 ### 6.2 在master1节点执行
 
-```
+```shell
 $ kubeadm init --config kubeadm-config.yaml
 ```
 
@@ -420,7 +424,7 @@ kubectl get pods -n kube-system
 
 
 
-## 7.安装集群网络
+## 7. 安装集群网络
 
 从官方地址获取到flannel的yaml，在master1上执行
 
@@ -446,7 +450,7 @@ kubectl get pods -n kube-system
 
 
 
-## 8、master2节点加入集群
+## 8. master2节点加入集群
 
 ### 8.1 复制密钥及相关文件
 
@@ -466,27 +470,27 @@ kubectl get pods -n kube-system
 
 执行在master1上init后输出的join命令,需要带上参数`--control-plane`表示把master控制节点加入集群
 
-```
+```shell
 kubeadm join master.k8s.io:16443 --token ckf7bs.30576l0okocepg8b     --discovery-token-ca-cert-hash sha256:19afac8b11182f61073e254fb57b9f19ab4d798b70501036fc69ebef46094aba --control-plane
 ```
 
 检查状态
 
-```
+```shell
 kubectl get node
 
 kubectl get pods --all-namespaces
 ```
 
-## 
 
-## 5. 加入Kubernetes Node
+
+## 9. 加入Kubernetes Node
 
 在node1上执行
 
 向集群添加新节点，执行在kubeadm init输出的kubeadm join命令：
 
-```
+```shell
 kubeadm join master.k8s.io:16443 --token ckf7bs.30576l0okocepg8b     --discovery-token-ca-cert-hash sha256:19afac8b11182f61073e254fb57b9f19ab4d798b70501036fc69ebef46094aba
 ```
 
@@ -494,13 +498,13 @@ kubeadm join master.k8s.io:16443 --token ckf7bs.30576l0okocepg8b     --discovery
 
 检查状态
 
-```
+```shell
 kubectl get node
 
 kubectl get pods --all-namespaces
 ```
 
-## 
+ 
 
 ## 7. 测试kubernetes集群
 
