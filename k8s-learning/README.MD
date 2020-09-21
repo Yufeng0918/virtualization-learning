@@ -556,3 +556,53 @@ Waiting for deployment "web" rollout to finish: 1 old replicas are pending termi
 
 
 
+## 7. Service
+
+通过创建 Service,可以为一组具有相同功能的容器应 用提供一个统一的入口地址，并且将请求负载分发到后端的各个容器应用上
+
+Service 通过虚拟IP， selector 和 label建立关系
+
++ 服务发现，防止ip访问无效
++ 负载均衡
+
+
+
+### 类型
+
+ClusterIP: 集群内部使用
+
+NodePort: 对外使用
+
+LoadBalancer：公有云使用
+
+
+
+### 导出
+
+```SHELL
+[root@k8s-master ~]# kubectl expose deployment web --dry-run --port=80 --target-port=80 -o yaml > service.yaml
+W0920 21:12:53.101315   11506 helpers.go:535] --dry-run is deprecated and can be replaced with --dry-run=client.
+```
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: web
+  name: web
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: web
+  # 默认是 type: ClusterIP
+status:
+  loadBalancer: {}
+```
+
+
+
