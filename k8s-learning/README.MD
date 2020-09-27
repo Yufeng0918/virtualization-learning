@@ -556,6 +556,25 @@ Waiting for deployment "web" rollout to finish: 1 old replicas are pending termi
 
 
 
+### 6.3 Stateful set
+
+每个Pod是独立的，要保持Pod的启动顺序和唯一性
+
++ 唯一网络表示 ClusterIP 是 none，持久存储
++ 有序, 主从复制
+
+
+
+#### 域名规则
+
+主机名 + 安装一定规则生成域名
+
+主机名.service名称.名称空间.svc.cluster.local， eg. nginx-statefulset-0.nginx.default.svc.cluster.local
+
+
+
+
+
 ## 7. Service
 
 通过创建 Service,可以为一组具有相同功能的容器应 用提供一个统一的入口地址，并且将请求负载分发到后端的各个容器应用上
@@ -565,11 +584,53 @@ Service 通过虚拟IP， selector 和 label建立关系
 + 服务发现，防止ip访问无效
 + 负载均衡
 
+### 配置
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: nginx
+
+---
+
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: nginx-statefulset
+  namespace: default
+spec:
+  serviceName: nginx
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+```
+
 
 
 ### 类型
 
-ClusterIP: 集群内部使用
+ClusterIP: 集群内部使用， clusterIP是none就是 headless service， 网络唯一标识符
 
 NodePort: 对外使用
 
