@@ -556,40 +556,19 @@ Waiting for deployment "web" rollout to finish: 1 old replicas are pending termi
 
 
 
-### 6.3 Stateful set
+### 6.2 Stateful set
 
 每个Pod是独立的，要保持Pod的启动顺序和唯一性
 
 + 唯一网络表示 ClusterIP 是 none，持久存储
 + 有序, 主从复制
 
+#### 配置
 
-
-#### 域名规则
-
-主机名 + 安装一定规则生成域名
-
-主机名.service名称.名称空间.svc.cluster.local， eg. nginx-statefulset-0.nginx.default.svc.cluster.local
-
-
-
-
-
-## 7. Service
-
-通过创建 Service,可以为一组具有相同功能的容器应 用提供一个统一的入口地址，并且将请求负载分发到后端的各个容器应用上
-
-Service 通过虚拟IP， selector 和 label建立关系
-
-+ 服务发现，防止ip访问无效
-+ 负载均衡
-
-### 配置
-
-```yaml
+```YAML
 apiVersion: v1
 kind: Service
-metadata:
+metadata
   name: nginx
   labels:
     app: nginx
@@ -603,7 +582,7 @@ spec:
 
 ---
 
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: nginx-statefulset
@@ -626,6 +605,164 @@ spec:
         - containerPort: 80
 ```
 
+```SHELL
+[root@k8s-master ~]# kubectl apply -f sts.yaml
+service/nginx unchanged
+statefulset.apps/nginx-statefulset created
+[root@k8s-master ~]# kubectl get svc
+NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP        85d
+nginx        ClusterIP   None             <none>        80/TCP         7m45s
+web          NodePort    10.104.113.128   <none>        80:30841/TCP   6d1h
+[root@k8s-master ~]# kubectl get pods -o wide
+NAME                  READY   STATUS    RESTARTS   AGE   IP            NODE        NOMINATED NODE   READINESS GATES
+nginx-statefulset-0   1/1     Running   0          14m   10.244.1.26   k8s-node1   <none>           <none>
+nginx-statefulset-1   1/1     Running   0          11m   10.244.2.27   k8s-node2   <none>           <none>
+nginx-statefulset-2   1/1     Running   0          11m   10.244.2.28   k8s-node2   <none>           <none>
+```
+
+
+
+#### 域名规则
+
+主机名 + 安装一定规则生成域名
+
+主机名.service名称.名称空间.svc.cluster.local， eg. **nginx-statefulset-0**.nginx.default.svc.cluster.local, nginx-statefulset-0 是 主机名
+
+
+
+### 6.3 Daemon Set
+
+守护进程，在每个node上运行一个pod
+
+#### 配置
+
+```
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ds-test 
+  labels:
+    app: filebeat
+spec:
+  selector:
+    matchLabels:
+      app: filebeat
+  template:
+    metadata:
+      labels:
+        app: filebeat
+    spec:
+      containers:
+      - name: logs
+        image: nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: varlog
+          mountPath: /tmp/log
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+```
+
+#### 验证
+
+```shell
+[root@k8s-master ~]# kubectl apply -f ds.yaml
+daemonset.apps/ds-test created
+[root@k8s-master ~]# kubectl get daemonset
+NAME      DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+ds-test   2         2         2       2            2           <none>          7m24s
+[root@k8s-master ~]# kubectl get deploy
+No resources found in default namespace.
+[root@k8s-master ~]# kubectl get pods
+NAME            READY   STATUS    RESTARTS   AGE
+ds-test-d7pfb   1/1     Running   0          7m34s
+ds-test-h2ckx   1/1     Running   0          7m34s
+[root@k8s-master ~]# kubectl get pods
+NAME            READY   STATUS    RESTARTS   AGE
+ds-test-d7pfb   1/1     Running   0          7m37s
+ds-test-h2ckx   1/1     Running   0          7m37s
+[root@k8s-master ~]# kubectl exec -it ds-test-d7pfb bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl kubectl exec [POD] -- [COMMAND] instead.
+root@ds-test-d7pfb:/# cd /var/
+root@ds-test-d7pfb:/var# ls -rlt
+total 0
+```
+
+
+
+### 6.3 Job & CronJob
+
+#### 配置
+
+Job 运行一次，运行完以后状态更新为completed
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi
+spec:
+  template:
+    spec:
+      containers:
+      - name: pi
+        image: perl
+        command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+      restartPolicy: Never
+  backoffLimit: 4
+```
+
+CronJob 是定期执行
+
+```yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: hello
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: hello
+            image: busybox
+            args:
+            - /bin/sh
+            - -c
+            - date; echo Hello from the Kubernetes cluster
+          restartPolicy: OnFailure
+```
+
+
+
+#### 验证
+
+```SHELL
+[root@k8s-master ~]# kubectl logs pi-dbrkq
+3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679821480865132823066470938446095505822317253594081284811174502841027019385211055596446229489549303819644288109756659334461284756482337867831652712019091456485669234603486104543266482133936072602491412737245870066063155881748815209209628292540917153643678925903600113305305488204665213841469519415116094330572703657595919530921861173819326117931051185480744623799627495673518857527248912279381830119491298336733624406566430860213949463952247371907021798609437027705392171762931767523846748184676694051320005681271452635608277857713427577896091736371787214684409012249534301465495853710507922796892589235420199561121290219608640344181598136297747713099605187072113499999983729780499510597317328160963185950244594553469083026425223082533446850352619311881710100031378387528865875332083814206171776691473035982534904287554687311595628638823537875937519577818577805321712268066130019278766111959092164201989380952572010654858632788659361533818279682303019520353018529689957736225994138912497217752834791315155748572424541506959508295331168617278558890750983817546374649393192550604009277016711390098488240128583616035637076601047101819429555961989467678374494482553797747268471040475346462080466842590694912933136770289891521047521620569660240580381501935112533824300355876402474964732639141992726042699227967823547816360093417216412199245863150302861829745557067498385054945885869269956909272107975093029553211653449872027559602364806654991198818347977535663698074265425278625518184175746728909777727938000816470600161452491921732172147723501414419735685481613611573525521334757418494684385233239073941433345477624168625189835694855620992192221842725502542568876717904946016534668049886272327917860857843838279679766814541009538837863609506800642251252051173929848960841284886269456042419652850222106611863067442786220391949450471237137869609563643719172874677646575739624138908658326459958133904780275901
+
+[root@k8s-master ~]# kubectl logs hello-1601181300-5d66z
+Sun Sep 27 04:34:45 UTC 2020
+Hello from the Kubernetes cluster
+```
+
+
+
+## 7. Service
+
+通过创建 Service,可以为一组具有相同功能的容器应 用提供一个统一的入口地址，并且将请求负载分发到后端的各个容器应用上
+
+Service 通过虚拟IP， selector 和 label建立关系
+
++ 服务发现，防止ip访问无效
++ 负载均衡
+
 
 
 ### 类型
@@ -638,7 +775,7 @@ LoadBalancer：公有云使用
 
 
 
-### 导出
+### 配置
 
 ```SHELL
 [root@k8s-master ~]# kubectl expose deployment web --dry-run --port=80 --target-port=80 -o yaml > service.yaml
@@ -666,4 +803,95 @@ status:
 ```
 
 
+
+## 8. Secret
+
+Secret 解决了密码、token、密钥等敏感数据的配置问题，而不需要把这些敏感数据暴露 到镜像或者 Pod Spec 中。Secret 可以以 Volume 或者环境变量的方式使用
+
+#### 配置
+
+```YAML
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: MWYyZDFlMmU2N2Rm
+```
+
+#### 挂载
+
++ 以变量挂载
++ 以volume挂载
+
+```YAML
+# 变量形式挂载
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    env:
+      - name: SECRET_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: mysecret
+            key: username
+      - name: SECRET_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: mysecret
+            key: password
+```
+
+```shell
+[root@k8s-master ~]# kubectl exec -it mypod bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl kubectl exec [POD] -- [COMMAND] instead.
+root@mypod:/# kubectl get pods
+bash: kubectl: command not found
+root@mypod:/# echo $SECRET_USERNAME
+admin
+root@mypod:/# echo $SECRET_PASSWORD
+1f2d1e2e67df
+```
+
+```YAML
+# VOLUME形式挂载
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    volumeMounts:
+    - name: foo
+      mountPath: "/etc/foo"
+      readOnly: true
+  volumes:
+  - name: foo
+    secret:
+      secretName: mysecret
+```
+
+```SHELL
+[root@k8s-master ~]# kubectl create -f secret-vol.yaml
+pod/mypod created
+[root@k8s-master ~]# kubectl exec -it mypod bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl kubectl exec [POD] -- [COMMAND] instead.
+root@mypod:/# ls /etc/foo/
+password  username
+root@mypod:/# cd /etc/foo/
+root@mypod:/etc/foo# cat password
+1f2d1e2e67dfroot@mypod:/etc/foo#
+root@mypod:/etc/foo# cat username
+adminroot@mypod:/etc/foo#
+root@mypod:/etc/foo#
+```
 
