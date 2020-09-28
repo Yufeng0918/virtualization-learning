@@ -808,7 +808,7 @@ status:
 
 Secret 解决了密码、token、密钥等敏感数据的配置问题，而不需要把这些敏感数据暴露 到镜像或者 Pod Spec 中。Secret 可以以 Volume 或者环境变量的方式使用
 
-#### 配置
+### 配置
 
 ```YAML
 apiVersion: v1
@@ -821,7 +821,7 @@ data:
   password: MWYyZDFlMmU2N2Rm
 ```
 
-#### 挂载
+### 挂载
 
 + 以变量挂载
 + 以volume挂载
@@ -893,5 +893,227 @@ root@mypod:/etc/foo# cat password
 root@mypod:/etc/foo# cat username
 adminroot@mypod:/etc/foo#
 root@mypod:/etc/foo#
+```
+
+
+
+## 9. ConfigMap
+
+ConfigMap 功能在 Kubernetes1.2 版本中引入，许多应用程序会从配置文件, 命令行参数 或环境变量中读取配 置信息
+
+### Volume 挂载
+
+```shell
+[root@k8s-master configmap]# kubectl  create configmap redis-config --from-file=redis.properties
+configmap/redis-config created
+[root@k8s-master configmap]# kubectl describe cm redis-config
+Name:         redis-config
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+redis.properties:
+----
+redis.host=127.0.0.1
+redis.port=6379
+redis.password=123456
+
+Events:  <none>
+```
+
+```YAML
+# VOLUME 挂载
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: busybox
+      image: busybox
+      command: [ "/bin/sh","-c","cat /etc/config/redis.properties" ]
+      volumeMounts:
+      - name: config-volume
+        mountPath: /etc/config
+  volumes:
+    - name: config-volume
+      configMap:
+        name: redis-config
+  restartPolicy: Never
+```
+
+### 变量挂载
+
+```YAML
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myconfig
+  namespace: default
+data:
+  special.level: info
+  special.type: hello
+```
+
+```YAML
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: busybox
+      image: busybox
+      command: [ "/bin/sh", "-c", "echo $(LEVEL) $(TYPE)" ]
+      env:
+        - name: LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: myconfig
+              key: special.level
+        - name: TYPE
+          valueFrom:
+            configMapKeyRef:
+              name: myconfig
+              key: special.type
+  restartPolicy: Never
+```
+
+
+
+## 10. 集群安全机制
+
+### 安全三步骤
+
+**认证**
+
++ 对外暴露端口是6443
++ 认证方式： https证书认证，http token认证，用户名 + 密码
+
+**授权**：基于RBAC进行授权
+
+**准入控制**：如果列表中有请求资源，则请求；否则拒绝
+
+访问过程都需要经过api server， api server 统一协调管理，访问过程中需要证书，token或者用户名/密码
+
+
+
+### RBAC 基于角色的访问控制
+
+角色：
+
++ role: 特定命名空间权限
++  clusterRole：所有命名空间权限
+
+主体：user，group， service account
+
+进行绑定
+
++ roleBinding：角色绑定到主体
++ clusterRoleBinding：集权角色绑定到主体
+
+
+
+### 配置
+
+创建角色
+
+```YAML
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: roledemo
+  name: pod-reader
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+```
+
+查看角色
+
+```SHELL
+[root@k8s-master rbac]# kubectl apply -f rbac-role.yaml
+role.rbac.authorization.k8s.io/pod-reader created
+[root@k8s-master rbac]# kubectl get role
+No resources found in default namespace.
+[root@k8s-master rbac]# kubectl get role -n roledemo
+NAME         CREATED AT
+pod-reader   2020-09-27T10:32:17Z
+[root@k8s-master rbac]# kubectl apply -f rbac-rolebinding.yaml
+rolebinding.rbac.authorization.k8s.io/read-pods created
+```
+
+
+
+## 11. Ingress
+
+Service 的 NodePort可以对外暴露端口，在每个节点上面都会启动端口，在访问的时候，可以通过任何节点 + 端口实现访问
+
+ingress是统一入口，通过域名，关联一个service， service关联一组pod进行访问
+
+
+
+### 配置
+
+安装ingress
+
+```SHELL
+[root@k8s-master rbac]# kubectl create deployment web --image=nginx
+deployment.apps/web created
+[root@k8s-master rbac]# kubectl get pods
+NAME                   READY   STATUS              RESTARTS   AGE
+mypod                  0/1     Completed           0          66m
+web-5dcb957ccc-frgfl   0/1     ContainerCreating   0          6s
+[root@k8s-master rbac]# kubectl expose deployment web --port=90 --target-port=80 --type=NodePort
+service/web exposed
+[root@k8s-master rbac]# kubectl get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP        85d
+web          NodePort    10.96.219.156   <none>        90:30675/TCP   6s
+[root@k8s-master ingress]# kubectl apply -f ingress-controller.yaml
+namespace/ingress-nginx created
+configmap/nginx-configuration created
+configmap/tcp-services created
+configmap/udp-services created
+serviceaccount/nginx-ingress-serviceaccount created
+clusterrole.rbac.authorization.k8s.io/nginx-ingress-clusterrole created
+role.rbac.authorization.k8s.io/nginx-ingress-role created
+rolebinding.rbac.authorization.k8s.io/nginx-ingress-role-nisa-binding created
+clusterrolebinding.rbac.authorization.k8s.io/nginx-ingress-clusterrole-nisa-binding created
+deployment.apps/nginx-ingress-controller created
+limitrange/ingress-nginx created
+[root@k8s-master ingress]# view ingress-controller.yaml
+[root@k8s-master ingress]# kubectl get pods -n ingress-nginx
+NAME                                       READY   STATUS              RESTARTS   AGE
+nginx-ingress-controller-766fb9f77-vsv46   0/1     ContainerCreating   0          67s
+[root@k8s-master ingress]# kubectl get pods -n ingress-nginx -o wide
+NAME                                       READY   STATUS    RESTARTS   AGE     IP              NODE        NOMINATED NODE   READINESS GATES
+```
+
+配置ingress规则
+
+```YAML
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: example-ingress
+spec:
+  rules:
+  - host: example.ingredemo.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: web
+          servicePort: 80
+```
+
+配置host文件
+
+```properties
+192.168.66.50 example.ingredemo.com
 ```
 
