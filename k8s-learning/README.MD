@@ -1355,3 +1355,113 @@ status:
   loadBalancer: {}
 ```
 
+
+
+## 13. PV & PVC
+
+### Persistent Volume
+
+是集群中由管理员配置的一段网络存储。 **它是集群中的资源，就像节点是集群资源一样**。 PV 是容量插件，如 Volumes，但其生命周期独立于使用 PV 的任 何单个 pod。 此 API 对象捕获存储实现的详细信息，包括 NFS，iSCSI 或特定于云提供程 序的存储系统。
+
+### Persistent Volume Claim
+
+是由用户进行存储的请求。 它类似于 pod。 **Pod 消耗节点 资源，PVC 消耗 PV 资源。**Pod 可以请求特定级别的资源(CPU 和内存)。声明可以请求特 定的大小和访问模式(例如，可以一次读/写或多次只读)。
+
+### 配置
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    path: /k8s/nfs
+    server: 192.168.44.134
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+      
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-dep1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        volumeMounts:
+        - name: wwwroot
+          mountPath: /usr/share/nginx/html
+        ports:
+        - containerPort: 80
+      volumes:
+      - name: wwwroot
+        persistentVolumeClaim:
+          claimName: my-pvc
+```
+
+
+
+## 13. 集群监控
+
+集群监控： 节点资源利用率，节点数， 运行pod
+
+pod监控：容器指标，应用程序
+
+prometheus + grafana 搭建监控平台
+
++ prometheus：开源方案，集成监控，报警，数据库。以http协议周期型抓取监控组件的状态
++ grafana：开源方案，数据分析和可视化工具， 支持多种数据源
+
+
+
+### 架构
+
+![](./images/k8s-06.png)
+
+### 部署
+
+```shell
+[root@k8s-master k8s-prometheus-grafana-master]# kubectl create -f node-exporter.yaml
+daemonset.apps/node-exporter created
+service/node-exporter created
+
+[root@k8s-master prometheus]# kubectl create -f rbac-setup.yaml
+clusterrole.rbac.authorization.k8s.io/prometheus created
+serviceaccount/prometheus created
+clusterrolebinding.rbac.authorization.k8s.io/prometheus created
+[root@k8s-master prometheus]# kubectl create -f configmap.yaml
+configmap/prometheus-config created
+[root@k8s-master prometheus]# kubectl create -f prometheus.deploy.yml
+deployment.apps/prometheus created
+[root@k8s-master prometheus]# kubectl create -f prometheus.svc.yml
+service/prometheus created
+[root@k8s-master prometheus]#
+```
+
