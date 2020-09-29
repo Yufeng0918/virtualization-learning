@@ -1054,11 +1054,7 @@ Service 的 NodePort可以对外暴露端口，在每个节点上面都会启动
 
 ingress是统一入口，通过域名，关联一个service， service关联一组pod进行访问
 
-
-
-### 配置
-
-安装ingress
+### 安装
 
 ```SHELL
 [root@k8s-master rbac]# kubectl create deployment web --image=nginx
@@ -1093,7 +1089,7 @@ nginx-ingress-controller-766fb9f77-vsv46   0/1     ContainerCreating   0        
 NAME                                       READY   STATUS    RESTARTS   AGE     IP              NODE        NOMINATED NODE   READINESS GATES
 ```
 
-配置ingress规则
+### 配置
 
 ```YAML
 apiVersion: networking.k8s.io/v1beta1
@@ -1115,5 +1111,247 @@ spec:
 
 ```properties
 192.168.66.50 example.ingredemo.com
+```
+
+
+
+## 12. Helm
+
+K8S 上的应用对象，都是由特定的资源描述组成，包括 deployment、service 等。都保存 各自文件中或者集中写到一个配置文件。然后 kubectl apply –f 部署。如果应用只由一 个或几个这样的服务组成，上面部署方式足够了。而对于一个复杂的应用，会有很多类似 上面的资源描述文件，例如微服务架构应用，组成应用的服务可能多达几十个。如果有更新或回滚应用的需求，可能要修改和维护所涉及的大量资源文件，而这种组织和管 理应用的方式就显得力不从心了。
+
+**Helm解决如下问题**
+
++ 将服务作为一个整体管理 
++ 资源文件高效复用
++ 支持应用级别的版本管理
+
+### 概念
+
+Helm 是一个Kubernetes的包管理工具，就像 Linux 下的包管理器，如 yum/apt 等，可以方便的将之前打包好的 yaml 文件部署到 kubernetes 上。
+
+**Helm**: 一个命令行客户端工具，主要用于 Kubernetes 应用 chart 的创建、打包、发 布和管理。
+
+**Chart**: 应用描述，一系列用于描述 k8s 资源相关文件的集合。
+
+**Release**: 基于 Chart 的部署实体，一个 chart 被 Helm 运行后将会生成对应的一个 release;将在 k8s 中创建出真实运行的资源对象。
+
+
+
+### 架构
+
+![](./images/k8s-05.png)
+
++  Tiller 的删除
++ Release 名称可以在不同命名空间重用
++ 支持将 Chart 推送至 Docker 镜像仓库中
++ 使用 JSONSchema 验证 chart values
+
+
+
+### 安装
+
+```SHELL
+[root@k8s-master ~]# tar xvf helm-v3.3.4-linux-amd64.tar.gz
+linux-amd64/
+linux-amd64/README.md
+linux-amd64/LICENSE
+linux-amd64/helm
+[root@k8s-master ~]# cd linux-amd64/
+[root@k8s-master linux-amd64]# mv helm /usr/bin/
+[root@k8s-master linux-amd64]# helm
+The Kubernetes package manager
+
+Common actions for Helm:
+
+- helm search:    search for charts
+- helm pull:      download a chart to your local directory to view
+- helm install:   upload the chart to Kubernetes
+- helm list:      list releases of charts
+
+[root@k8s-master linux-amd64]# helm repo add stable http://mirror.azure.cn/kubernetes/charts
+"stable" has been added to your repositories
+[root@k8s-master linux-amd64]#
+[root@k8s-master linux-amd64]# helm repo add aliyun https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+"aliyun" has been added to your repositories
+[root@k8s-master linux-amd64]# helm repo update
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "aliyun" chart repository
+...Successfully got an update from the "stable" chart repository
+Update Complete. ⎈Happy Helming!⎈
+[root@k8s-master linux-amd64]# helm repo list
+NAME  	URL
+stable	http://mirror.azure.cn/kubernetes/charts
+aliyun	https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+```
+
+
+
+### 部署
+
+部署以后把 type 改为 NodePort 暴露端口给外界
+
+```SHELL
+[root@k8s-master linux-amd64]# helm search repo weave
+NAME              	CHART VERSION	APP VERSION	DESCRIPTION
+aliyun/weave-cloud	0.1.2        	           	Weave Cloud is a add-on to Kubernetes which pro...
+aliyun/weave-scope	0.9.2        	1.6.5      	A Helm chart for the Weave Scope cluster visual...
+stable/weave-cloud	0.3.7        	1.4.0      	Weave Cloud is a add-on to Kubernetes which pro...
+stable/weave-scope	1.1.10       	1.12.0     	A Helm chart for the Weave Scope cluster visual...
+[root@k8s-master linux-amd64]# helm install ui stable/weave-scope
+NAME: ui
+LAST DEPLOYED: Mon Sep 28 11:40:54 2020
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+NOTES:
+You should now be able to access the Scope frontend in your web browser, by
+using kubectl port-forward:
+
+kubectl -n default port-forward $(kubectl -n default get endpoints \
+ui-weave-scope -o jsonpath='{.subsets[0].addresses[0].targetRef.name}') 8080:4040
+
+then browsing to http://localhost:8080/.
+For more details on using Weave Scope, see the Weave Scope documentation:
+
+https://www.weave.works/docs/scope/latest/introducing/
+[root@k8s-master linux-amd64]# helm list
+NAME	NAMESPACE	REVISION	UPDATED                                	STATUS  	CHART             	APP VERSION
+ui  	default  	1       	2020-09-28 11:40:54.133540885 -0400 EDT	deployed	weave-scope-1.1.10	1.12.0
+[root@k8s-master linux-amd64]# helm status ui
+NAME: ui
+LAST DEPLOYED: Mon Sep 28 11:40:54 2020
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+NOTES:
+You should now be able to access the Scope frontend in your web browser, by
+using kubectl port-forward:
+
+kubectl -n default port-forward $(kubectl -n default get endpoints \
+ui-weave-scope -o jsonpath='{.subsets[0].addresses[0].targetRef.name}') 8080:4040
+
+then browsing to http://localhost:8080/.
+For more details on using Weave Scope, see the Weave Scope documentation:
+
+https://www.weave.works/docs/scope/latest/introducing/
+[root@k8s-master linux-amd64]# kubectl edit svc ui-weave-scope
+service/ui-weave-scope edited
+[root@k8s-master linux-amd64]# kubectl get svc
+NAME             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+kubernetes       ClusterIP   10.96.0.1        <none>        443/TCP        87d
+ui-weave-scope   NodePort    10.103.143.172   <none>        80:30845/TCP   5m37s
+web              NodePort    10.108.181.13    <none>        80:32480/TCP   14h
+```
+
+
+
+### 自定义Chart
+
++ Chart.yaml： 当前chart的配置信息
++ templates： 编写yaml文件的目录, 包括deployment， service， ingress
++ values.yaml： yaml文件中的全局变量
+
+```shell
+[root@k8s-master ~]# helm create mychart
+Creating mychart
+[root@k8s-master ~]# ls
+anaconda-ks.cfg                 jdk-8u261-linux-x64.rpm  nacos                            secret-vol.yaml          test1
+configmap                       job.yaml                 nacos-server-1.4.0-SNAPSHOT.zip  secret.yaml              test2
+cronjob.yaml                    linux-amd64              nginx-deployment.yaml            secrete.yaml             web.yaml
+ds.yaml                         my1.yaml                 nginx.yaml                       service.yaml             web1.yaml
+helm-v3.3.4-linux-amd64.tar.gz  my2.yaml                 rbac                             sts.yaml
+ingress                         mychart                  secret-var.yaml                  test-liveness-exec.yaml
+[root@k8s-master ~]# cd mychart/
+[root@k8s-master mychart]# ls -rlt
+total 8
+-rw-r--r--. 1 root root 1800 Sep 29 01:40 values.yaml
+drwxr-xr-x. 3 root root  162 Sep 29 01:40 templates
+-rw-r--r--. 1 root root 1098 Sep 29 01:40 Chart.yaml
+drwxr-xr-x. 2 root root    6 Sep 29 01:40 charts
+[root@k8s-master mychart]# view Chart.yaml
+[root@k8s-master mychart]# cd ..
+[root@k8s-master ~]# cd mychart/
+[root@k8s-master mychart]# cd templates/
+[root@k8s-master templates]# kubectl create deployment web1 --image=nginx --dry-run  -o yaml > deployment.yaml
+W0929 01:46:16.069642    9013 helpers.go:535] --dry-run is deprecated and can be replaced with --dry-run=client.
+[root@k8s-master templates]# kubectl expose deployment web1 --port=80 --target-port=80 --type=NodePort --dry-run=client  -o yaml > service.yaml
+[root@k8s-master templates]#
+[root@k8s-master ~]# helm install web1 mychart/
+NAME: web1
+LAST DEPLOYED: Tue Sep 29 01:51:36 2020
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+NOTES:
+1. Get the application URL by running these commands:
+  export POD_NAME=$(kubectl get pods --namespace default -l "app.kubernetes.io/name=mychart,app.kubernetes.io/instance=web1" -o jsonpath="{.items[0].metadata.name}")
+  echo "Visit http://127.0.0.1:8080 to use your application"
+  kubectl --namespace default port-forward $POD_NAME 8080:80
+[root@k8s-master ~]# helm upgrade web1 mychart/  
+```
+
+
+
+### Chart模板
+
+通过传递参数，动态渲染模板，yaml内容动态传入参数
+
++ 在values.yaml定义变量和值, 
++ 在其他yaml文件中获取值, e.g. image, tag, label, port, replicas
+  + **{{ .Values.[var]}}** 替代values中定义的变量
+  + **{{ .Release.Name}}** 定义版本信息
+
+values.yaml
+
+```properties
+replicas: 1
+image: nginx
+tag: 1.16
+label: nginx
+port: 80
+```
+
+Deployment.yaml
+
+```YAML
+kind: Deployment
+metadata:
+  name: {{ .Release.Name}}-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.label}}
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: {{ .Values.label}}
+    spec:
+      containers:
+      - image: {{ .Values.image}}
+        name: nginx
+        resources: {}
+status: {}
+```
+
+Service.yaml
+
+```YAML
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name}}-svc
+spec:
+  ports:
+  - port: {{ .Values.port}}
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: {{ .Values.label}}
+  type: NodePort
+status:
+  loadBalancer: {}
 ```
 
