@@ -1463,5 +1463,22 @@ deployment.apps/prometheus created
 [root@k8s-master prometheus]# kubectl create -f prometheus.svc.yml
 service/prometheus created
 [root@k8s-master prometheus]#
+
+[root@k8s-master grafana]# kubectl create -f grafana-deploy.yaml
+deployment.apps/grafana-core created
+[root@k8s-master grafana]# vi grafana-svc.yaml
+[root@k8s-master grafana]# kubectl create -f grafana-svc.yaml
+service/grafana created
+[root@k8s-master grafana]# kubectl create -f grafana-ing.yaml
+ingress.extensions/grafana created
 ```
 
+
+
+## 14. 高可用k8s
+
+对 Kubernetes 集群，高可用性还应包含以下两个层面的考虑:Etcd 数据库的高可用性 和 Kubernetes Master 组件的高可用性。 而 Etcd 我们已经采用 3 个节点组建集群实现高 可用，本节将对 Master 节点高可用进行说明和实施。
+
+Master 节点主要有三个服务 kube-apiserver、kube-controller-mansger 和 kube- scheduler，其中 kube-controller-mansger 和 kube-scheduler 组件自身通过选择机制已 经实现了高可用，所以 Master 高可用主要针对 kube-apiserver 组件，而该组件是以 HTTP API 提供服务，因此对他高可用与 Web 服务器类似，增加负载均衡器对其负载均衡即可， 并且可水平扩容。
+
+![](./images/k8s-07.png)
