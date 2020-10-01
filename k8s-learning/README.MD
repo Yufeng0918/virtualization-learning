@@ -1482,3 +1482,31 @@ ingress.extensions/grafana created
 Master 节点主要有三个服务 kube-apiserver、kube-controller-mansger 和 kube- scheduler，其中 kube-controller-mansger 和 kube-scheduler 组件自身通过选择机制已 经实现了高可用，所以 Master 高可用主要针对 kube-apiserver 组件，而该组件是以 HTTP API 提供服务，因此对他高可用与 Web 服务器类似，增加负载均衡器对其负载均衡即可， 并且可水平扩容。
 
 ![](./images/k8s-07.png)
+
+### 安装
+
+安装node exporter
+
+安装prometheus
+
+安装grafana
+
++ 查看grafana安装的机器地址
+
++ 配置数据源：查看prometheus在集群中的ip地址，端口是9090
++ 导入dashboard.json
+
+
+
+
+
+## 15. 容器交付
+
+![](./images/k8s-08.png)
+
+```shell
+mvn clean install
+docker build -t java-demo-01:latest .
+
+```
+
