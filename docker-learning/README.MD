@@ -1,7 +1,49 @@
 # Docker 
 
 ## 1. Intro
-#### Tools
+### 历史
+
+2013 年的后端技术领域， 曾经被人们寄予厚望的云计算技术，也已经从当初虚无缥缈的概念蜕变成了实实在在的虚拟机和账单。相比于如日中天的 AWS 和盛极一时的 OpenStack，以 Cloud Foundry 为代表的开源 PaaS 项目，却成为了当时云计算技术中的一股清流。
+
+
+
+当时还名叫 dotCloud 的公司相比于 Heroku、Pivotal、Red Hat 等 PaaS 弄潮儿们，dotCloud 公司实在是太微不足道了，而它的主打产品由于跟主流的 Cloud Foundry 社区脱节，长期以来也无人问津。dotCloud 公司却做出了这样一个决定：**开源自己的容器项目 Docker。**
+
+
+
+#### 痛点
+
+PaaS 项目被大家接纳的一个主要原因，就是它提供了一种名叫“应用托管”的能力。最核心的组件就是一套应用的打包和分发机制。，Cloud Foundry 会调用操作系统的 Cgroups 和 Namespace 机制为每一个应用单独创建**一个称作“沙盒”的隔离环境**，然后在“沙盒”中启动这些应用进程。
+
+一旦用上了 PaaS，用户就必须为每种语言、每种框架，甚至每个版本的应用维护一个打好的包**。这个打包过程，没有任何章法可循，更麻烦的是，明明在本地运行得好好的应用，却需要做很多修改和配置工作才能在 PaaS 里运行起来。**
+
+
+
+#### 镜像
+
+Docker 项目给 PaaS 世界带来的“降维打击”，其实是提供了一种非常便利的打包机制。这种机制直接打包了应用运行所需要的整个操作系统，**从而保证了本地环境和云端环境的高度一致，**避免了用户通过“试错”来匹配两种不同运行环境之间差异的痛苦过程。
+
++ 解决了应用打包和发布这一困扰运维人员多年的技术难题
++ 第一次把一个纯后端的技术概念，通过非常友好的设计和封装，交到了最广大的开发者群体手里。
+
+
+
+#### SWARM
+
+“PaaS”的定义是以 Docker 镜像为打包标准的、全新的“容器化”思路。这，正是 Docker 项目从一开始悉心运作“容器化”理念和经营整个 Docker 生态的主要目的。
+
+
+
+Docker 公司在 2014 年 12 月的 DockerCon 上发布 Swarm。这样一个“原生”的 Docker 容器集群管理项目一经发布，就受到了已有 Docker 用户群的热捧。
+
+Docker 公司，开始及时地借助这波浪潮通过并购来完善自己的平台层能力。其中一个最成功的案例，莫过于对 Fig 项目的收购。
+
+
+
+
+
+### Components
+
 - Docker: required Windows Hyper-V
 - Command: Powershell, Terminal
 - Editor: Visual Studio Code
@@ -9,10 +51,10 @@
 - Docker commmand
     command format: <command> <subcommand> <option>
     e.g. version, info
-#### Image && Container
+### Image && Container
 - Image: appliation to run
 - Container: instance of image, many containers running for same image
-#### Docker Container
+### Docker Container
 - Command
     - docker run <image>
     - docker container ls: list container running
@@ -29,14 +71,16 @@
     - create container from image
     - give virutal IP of private network
     - startup container
-#### Container vs VM
+### Container vs VM
 - container: clusters of process running in os
 - vm: virtualized hardware/os/process
 ***
 
 
+
 ## 2. Docker Container
-#### Run
+
+### Run
 - docker run <option> <image> <command>
     + --publish <localport>:<imageport>
     + --e <environment variable>: mysql password uos9xooPhia4iem2airohngeing3ahta
@@ -49,15 +93,23 @@
 - E.g 
     + docker container run -p 80:80 -d --name webhost nginx
     + docker container run -p 8080:80 -d --name apache httpd
-#### Container-list    
+### Container-list    
+
 - docker container ls: list container running
+
 - docker container ls -a: list container ran and running
-#### Monitor
+
+  
+### Monitor
 - container top <container_id>: process in single container
 - container stat <container_id>: cpu/memory for all container
 - container inspect <container_id>: container config
 - container logs <container_id>: log 
-#### Run shell inside container
+
+
+
+### Run shell inside container
+
 - run -it <container> <bash>: start container and run 
     + i: Interactive
     + t: Allocate a pseudo-TTY
@@ -66,12 +118,12 @@
     + a: Attached
     + exit does not shutdown container
 - exec it <container> <bash>
-#### Network
+### Network
 - concept
     + each container connected to private virtual network
     + each virtual network -> host via NAT
     + set container required communication in same sub network
-#### Command
+### Command
 - command
     + container -p <host_port>:<container_port>
     + network ls
@@ -292,4 +344,5 @@ secrets:
 #### Docker cloud
 - auto image building, testing, deployment
 - more advance than docker store
+
 ***
